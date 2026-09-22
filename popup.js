@@ -8,14 +8,16 @@ button.addEventListener("click", async () => {
         currentWindow: true
     });
 
-    chrome.tabs.sendMessage(
-        tab.id,
+    chrome.runtime.sendMessage(
         {
-            action: "getPageData"
+            action: "getPageData",
+            tabId: tab.id
         },
         (response) => {
             console.log("Page data received:", response);
-            pageTitle.textContent = response.title;
+            if(response) {
+                pageTitle.textContent = response.title;
+            }
         }
     );
 });
