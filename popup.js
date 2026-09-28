@@ -21,3 +21,39 @@ button.addEventListener("click", async () => {
         }
     );
 });
+
+const bookmarksButton = document.getElementById("getBookmarks");
+const bookmarksContainer = document.getElementById("bookmarks");
+
+bookmarksButton.addEventListener("click", () => {
+
+    chrome.runtime.sendMessage(
+        {
+            action: "getBookmarks"
+        },
+        (response) => {
+
+            console.log("Bookmarks received:", response);
+
+            bookmarksContainer.innerHTML = "";
+
+            if (!response || !response.bookmarks) {
+                bookmarksContainer.textContent =
+                    "Could not load bookmarks.";
+                return;
+            }
+
+            response.bookmarks.forEach((bookmark) => {
+
+                const bookmarkElement = document.createElement("div");
+
+                bookmarkElement.innerHTML = `
+                    <h3>${bookmark.title}</h3>
+                    <p>${bookmark.url}</p>
+                `;
+
+                bookmarksContainer.appendChild(bookmarkElement);
+            });
+        }
+    );
+});

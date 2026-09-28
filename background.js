@@ -31,4 +31,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         );
         return true;
     }
-})
+
+    if (message.action === "getBookmarks") {
+
+            fetch(
+                "http://127.0.0.1:8000/bookmarks"
+            )
+                .then((response) => response.json())
+                .then((data) => {
+
+                    console.log(
+                        "Bookmarks from FastAPI:",
+                        data
+                    );
+
+                    sendResponse(data);
+
+                })
+                .catch((error) => {
+
+                    console.error(
+                        "Error fetching bookmarks:",
+                        error
+                    );
+
+                    sendResponse({
+                        error: "Could not fetch bookmarks"
+                    });
+                });
+
+            return true;
+        }
+    }
+);
