@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 
 app = FastAPI()
 
@@ -9,6 +10,8 @@ client = MongoClient("mongodb://localhost:27017/")
 
 db = client["ai_bookmark"]
 bookmarks_collection = db["bookmarks"]
+
+bookmarks_collection.create_index("url", unique = True)
 
 class Bookmark(BaseModel):
     title: str
@@ -24,7 +27,13 @@ def root():
 @app.post("/bookmarks")
 def create_bookmark(bookmark: Bookmark):
     bookmark_data = bookmark.model_dump()
-    result = bookmarks_collection.insert_one(bookmark_data)
+    try:
+        result = bookmarks_collection.insert_one(bookmark_data)
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=409,
+            detail="Bookmark with this URL already exists"
+        )
     return {
         "message": "Bookmark created successfully",
         "id": str(result.inserted_id),
