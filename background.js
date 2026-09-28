@@ -62,5 +62,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             return true;
         }
+
+    if (message.action === "deleteBookmark") {
+        fetch (
+            `http://127.0.0.1:8000/bookmark/${message.bookmarkId}`,
+            {
+                method: "DELETE"
+            }
+        )
+            .then((response) => response.json())
+            .then((data) => {
+                console.log("Delete response from FastAPI:", data);
+                sendResponse(data);
+            })
+            .catch((error) => {
+                console.log("Error deleting bookmark:", error);
+                sendResponse({ error: "Failed to delete bookmark" });
+            });
+            return true;
+        }
     }
 );

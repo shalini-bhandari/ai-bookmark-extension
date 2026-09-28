@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymongo import MongoClient
+from bson import ObjectId
 
 app = FastAPI()
 
@@ -39,4 +40,49 @@ def get_bookmarks():
 
     return {
         "bookmarks": bookmarks
+    }
+
+@app.get("/bookmarks/{bookmark_id}")
+def get_bookmark(bookmark_id: str):
+
+    try:
+        object_id = ObjectId(bookmark_id)
+    except Exception:
+        raise HTTPException(
+            status_code = 400,
+            detail="Invaild bookmark ID"
+        )
+    bookmark = bookmarks_collection.find_one({
+        "_id": object_id
+    })
+    if bookmark is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Bookmark not found"
+        )
+    bookmark["_id"] = str(bookmark["_id"])
+    return {
+        "bookmark": bookmark
+    }
+
+@app.delete("/bookmark/{bookmark_id}")
+def delete_bookmark(bookmark_id: str) :
+    try:
+        object_id = ObjectId(bookmark_id)
+    except Exception:
+        raise HTTPException(
+            status_code = 400,
+            detail = "Invalid Bookmark ID"
+        )
+
+    result = bookmarks_collection.delete_one({
+        "_id": object_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code = 404,
+            detail = "Bookmark not found"
+        )
+    return {
+        "message": "Bookmark deleted successfully"
     }
