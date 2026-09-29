@@ -1,3 +1,4 @@
+// get page data button
 const button = document.getElementById("getPageData");
 const pageTitle = document.getElementById("pageTitle");
 
@@ -26,11 +27,13 @@ button.addEventListener("click", async () => {
     );
 });
 
+// View bookmarks button
 const bookmarksButton = document.getElementById("getBookmarks");
 const bookmarksContainer = document.getElementById("bookmarks");
 
 bookmarksButton.addEventListener("click", loadBookmarks);
 
+// Function to load bookmarks and display them in the popup
 function loadBookmarks() {
     chrome.runtime.sendMessage(
         {
@@ -83,6 +86,30 @@ function loadBookmarks() {
     );
 }
 
+// Function to display a bookmark in the popup
+function displayBookmark(bookmark, container) {
+    const bookmarkElement = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = bookmark.title;
+
+    const url = document.createElement("p");
+    url.textContent = bookmark.url;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+
+    deleteButton.addEventListener("click", () => {
+        deleteBookmark(bookmark._id);
+    });
+
+    bookmarkElement.appendChild(title);
+    bookmarkElement.appendChild(url);
+    bookmarkElement.appendChild(deleteButton);
+
+    container.appendChild(bookmarkElement);
+}
+
+// Function to delete a bookmark
 function deleteBookmark(bookmark_id) {
     console.log("Deleting bookmark", bookmark_id);
     chrome.runtime.sendMessage(
@@ -101,6 +128,47 @@ function deleteBookmark(bookmark_id) {
                     response.error
                 );
             }
+        }
+    );
+}
+
+// Search bookmarks button
+const searchButton = document.getElementById("searchButton");
+const searchInput = document.getElementById("searchInput");
+const searchResults = document.getElementById("searchResults");
+
+searchButton.addEventListener("click", searchBookmarks);
+
+// Search function
+function searchBookmarks() {
+    const query = searchInput.value.trim();
+    if (!query) {
+        searchResults.textContent = "Please enter a search query.";
+        return;
+    }
+    console.log("Searching bookmarks for:", query);
+
+    chrome.runtime.sendMessage(
+        {
+            action: "searchBookmarks",
+            query: query
+        },
+        (response) => {
+            console.log("Search results:", response);
+            searchResults.innerHTML = "";
+
+            if (!response || response.error) {
+                searchResults.textContent = "Error occurred while searching.";
+                return;
+            }
+            if (response.bookmarks.length === 0) {
+                searchResults.textContent = "No bookmarks found.";
+                return;
+            }
+
+            response.bookmarks.forEach((bookmark) => {
+                displayBookmark(bookmark, searchResults);
+            });
         }
     );
 }

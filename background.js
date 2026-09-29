@@ -1,6 +1,8 @@
 console.log("Service worker started");
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    
+    // Get page data and save
     if(message.action === "getPageData") {
         chrome.tabs.sendMessage(
             message.tabId,
@@ -32,6 +34,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    // Get all bookmarks
     if (message.action === "getBookmarks") {
 
             fetch(
@@ -62,7 +65,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             return true;
         }
-
+    
+    // Delete Bookmark
     if (message.action === "deleteBookmark") {
         fetch (
             `http://127.0.0.1:8000/bookmark/${message.bookmarkId}`,
@@ -81,5 +85,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
             return true;
         }
+
+    // Search Bookmarks
+    if (message.action === "searchBookmarks") {
+
+        const query = encodeURIComponent(message.query);
+        const url = `http://127.0.0.1:8000/bookmarks/search?query=${query}`;
+
+        console.log("Search URL:", url);
+
+        fetch(url)
+            .then((response) => {
+
+                console.log("Search HTTP status:", response.status);
+                return response.json();
+            })
+            .then((data) => {
+
+                console.log("Search results from FastAPI:", data);
+                sendResponse(data);
+
+            })
+            .catch((error) => {
+
+                console.error("Error searching bookmarks:", error);
+                sendResponse({
+                    error: "Could not search bookmarks"
+                });
+            });
+
+        return true;
     }
-);
+});
