@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
@@ -51,6 +51,57 @@ def get_bookmarks():
         "bookmarks": bookmarks
     }
 
+@app.delete("/bookmark/{bookmark_id}")
+def delete_bookmark(bookmark_id: str) :
+    try:
+        object_id = ObjectId(bookmark_id)
+    except Exception:
+        raise HTTPException(
+            status_code = 400,
+            detail = "Invalid Bookmark ID"
+        )
+
+    result = bookmarks_collection.delete_one({
+        "_id": object_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code = 404,
+            detail = "Bookmark not found"
+        )
+    return {
+        "message": "Bookmark deleted successfully"
+    }
+
+@app.get("/bookmarks/search")
+def search_bookmarks(query: str = Query(..., min_length = 1)):
+
+    bookmarks = bookmarks_collection.find({
+        "$or": [
+            {
+                "title": {
+                    "$regex": query,  # perform pattern/text matching
+                    "$options": "i"  # case-insensitive search
+                }
+            },
+            {
+                "content": {
+                    "$regex": query,  # perform pattern/text matching
+                    "$options": "i"  # case-insensitive search
+                }
+            }
+        ]
+    })
+
+    results = list(bookmarks)
+    for bookmark in results:
+        bookmark["_id"] = str(bookmark["_id"])
+    return {
+        "query": query,
+        "count" : len(results),
+        "bookmarks": results
+    }
+
 @app.get("/bookmarks/{bookmark_id}")
 def get_bookmark(bookmark_id: str):
 
@@ -72,26 +123,4 @@ def get_bookmark(bookmark_id: str):
     bookmark["_id"] = str(bookmark["_id"])
     return {
         "bookmark": bookmark
-    }
-
-@app.delete("/bookmark/{bookmark_id}")
-def delete_bookmark(bookmark_id: str) :
-    try:
-        object_id = ObjectId(bookmark_id)
-    except Exception:
-        raise HTTPException(
-            status_code = 400,
-            detail = "Invalid Bookmark ID"
-        )
-
-    result = bookmarks_collection.delete_one({
-        "_id": object_id
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(
-            status_code = 404,
-            detail = "Bookmark not found"
-        )
-    return {
-        "message": "Bookmark deleted successfully"
     }
