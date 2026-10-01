@@ -116,4 +116,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         return true;
     }
+
+    if(message.action === "semanticSearchBookmarks") {
+        const query = encodeURIComponent(message.query);
+        const url = `http://127.0.0.1:8000/bookmarks/semantic-search?query=${query}&top_k=5`;
+
+        console.log("Semantic Search URL:", url);
+
+        fetch(url)
+            .then((response) => {
+                console.log("Semantic Search HTTP status:", response.status);
+                return response.json();
+            })
+            .then((data) => {
+                console.log("Semantic Search results:", data);
+                sendResponse(data);
+            })
+            .catch((error) => {
+                console.error("Error in semantic search:", error);
+                sendResponse({
+                    error: "Could not perform semantic search"
+                });
+            });
+
+        return true;
+    }
 });

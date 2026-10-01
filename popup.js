@@ -136,8 +136,10 @@ function deleteBookmark(bookmark_id) {
 const searchButton = document.getElementById("searchButton");
 const searchInput = document.getElementById("searchInput");
 const searchResults = document.getElementById("searchResults");
+const semanticSearchButton = document.getElementById("semanticSearchButton");
 
 searchButton.addEventListener("click", searchBookmarks);
+semanticSearchButton.addEventListener("click", semanticSearchBookmarks);
 
 // Search function
 function searchBookmarks() {
@@ -171,4 +173,63 @@ function searchBookmarks() {
             });
         }
     );
+}
+
+function semanticSearchBookmarks() {
+    const query = searchInput.value.trim();
+
+    if(!query) {
+        searchResults.textContent = "Please eneter a search query.";
+        return;
+    }
+
+    console.log("AI searching for:", query);
+
+    chrome.runtime.sendMessage(
+        {
+            action: "semanticSearchBookmarks",
+            query: query
+        },
+        (response) => {
+            console.log("Semantic search response:", response);
+            searchResults.innerHTML = "";
+            
+            if(!response || response.error) {
+                searchResults.textContent = "Error occurred while searching.";
+                return;
+            }
+
+            if(!Array.isArray(response.bookmarks)){
+                console.error("Unexpected response:", response);
+                searchResults.textContent = "Unexpected response from server.";
+                return;
+            }
+
+            if(response.bookmarks.length === 0) {
+                searchResults.textContent = "No bookmarks found.";
+                return;
+            }
+            response.bookmarks.forEach((bookmark) => {
+                displaySemanticBookmark(bookmark, searchResults);
+            });
+        }
+    );
+}
+
+function displaySemanticBookmark(bookmark, container) {
+    const bookmarkElement = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = bookmark.title;
+    
+    const url = document.createElement("p");
+    url.textContent = bookmark.url;
+
+    const score = document.createElement("p");
+    score.textContent = "Similarity Score: " + bookmark.similarity_score.toFixed(4);
+
+    bookmarkElement.appendChild(title);
+    bookmarkElement.appendChild(url);
+    bookmarkElement.appendChild(score);
+
+    container.appendChild(bookmarkElement);
 }
