@@ -4,6 +4,9 @@ from pymongo import MongoClient
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
+from embedding_service import generate_embedding
+from semantic_search import semantic_search
+
 app = FastAPI()
 
 client = MongoClient("mongodb://localhost:27017/")
@@ -27,6 +30,13 @@ def root():
 @app.post("/bookmarks")
 def create_bookmark(bookmark: Bookmark):
     bookmark_data = bookmark.model_dump()
+
+    text = (
+        bookmark_data["title"] + "\n" + bookmark_data["content"]
+    )
+    embedding = generate_embedding(text)
+    bookmark_data["embedding"] = embedding
+
     try:
         result = bookmarks_collection.insert_one(bookmark_data)
     except DuplicateKeyError:
@@ -37,18 +47,11 @@ def create_bookmark(bookmark: Bookmark):
     return {
         "message": "Bookmark created successfully",
         "id": str(result.inserted_id),
-        "bookmark": bookmark
-    }
-
-@app.get("/bookmarks")
-def get_bookmarks():
-    bookmarks = list(bookmarks_collection.find())
-
-    for bookmark in bookmarks:
-        bookmark["_id"] = str(bookmark["_id"])
-
-    return {
-        "bookmarks": bookmarks
+        "bookmark": {
+            "title": bookmark_data["title"],
+            "url": bookmark_data["url"],
+            "content": bookmark_data["content"]
+        }
     }
 
 @app.delete("/bookmark/{bookmark_id}")
@@ -71,6 +74,17 @@ def delete_bookmark(bookmark_id: str) :
         )
     return {
         "message": "Bookmark deleted successfully"
+    }
+
+@app.get("/bookmarks")
+def get_bookmarks():
+    bookmarks = list(bookmarks_collection.find())
+
+    for bookmark in bookmarks:
+        bookmark["_id"] = str(bookmark["_id"])
+
+    return {
+        "bookmarks": bookmarks
     }
 
 @app.get("/bookmarks/search")
@@ -100,6 +114,39 @@ def search_bookmarks(query: str = Query(..., min_length = 1)):
         "query": query,
         "count" : len(results),
         "bookmarks": results
+    }
+
+@app.get("/bookmarks/semantic-search")
+def semantic_search_bookmarks(query: str = Query(..., min_length = 1), top_k: int = 5):
+    bookmarks = list(bookmarks_collection.find({
+        "embedding": {
+            "$exists": True
+        }
+    }))
+    if not bookmarks:
+        return {
+            "query": query,
+            "count": 0,
+            "bookmarks": []
+        }
+    results = semantic_search(query, bookmarks, top_k)
+
+    response = []
+
+    for bookmark, score in results:
+        bookmark["_id"] = str(bookmark["_id"])
+        response.append({
+            "id": bookmark["_id"],
+            "title": bookmark["title"],
+            "url": bookmark["url"],
+            "content": bookmark["content"],
+            "similarity_score": float(score)
+        })
+
+    return {
+        "query": query,
+        "count": len(response),
+        "bookmarks": response
     }
 
 @app.get("/bookmarks/{bookmark_id}")
