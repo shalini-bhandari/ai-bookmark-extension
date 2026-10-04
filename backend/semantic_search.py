@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-def semantic_search(query: str, bookmarks: list, top_k: int = 5):
+def semantic_search(query: str, bookmarks: list, top_k: int = 5, threshold: float = 0.3):
     query_embedding = model.encode([query])
     document_embeddings = [bookmark['embedding'] for bookmark in bookmarks]
 
@@ -11,4 +11,9 @@ def semantic_search(query: str, bookmarks: list, top_k: int = 5):
 
     results = list(zip(bookmarks, similarities))
     results.sort(key=lambda x: x[1], reverse=True)
-    return results[:top_k]
+    filtered_results = [
+        result
+        for result in results
+        if result[1] >= threshold
+    ]
+    return filtered_results[:top_k]
