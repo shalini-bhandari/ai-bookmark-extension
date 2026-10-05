@@ -1,19 +1,43 @@
-from sentence_transformers import SentenceTransformer
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from embedding_service import generate_embedding
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
-def semantic_search(query: str, bookmarks: list, top_k: int = 5, threshold: float = 0.3):
-    query_embedding = model.encode([query])
-    document_embeddings = [bookmark['embedding'] for bookmark in bookmarks]
+def semantic_search(query, bookmarks, top_k=5):
 
-    similarities = cosine_similarity(query_embedding, document_embeddings)[0]
+    query_embedding = generate_embedding(query)
+    query_embedding = np.asarray(query_embedding)
+    query_embedding = query_embedding.reshape(1, -1)
 
-    results = list(zip(bookmarks, similarities))
-    results.sort(key=lambda x: x[1], reverse=True)
-    filtered_results = [
-        result
-        for result in results
-        if result[1] >= threshold
-    ]
-    return filtered_results[:top_k]
+    results = []
+
+    for bookmark in bookmarks:
+
+        for chunk in bookmark["chunks"]:
+
+            # Convert chunk embedding to NumPy array
+            chunk_embedding = np.asarray(
+                chunk["embedding"]
+            )
+            chunk_embedding = chunk_embedding.reshape(1, -1)
+
+            similarity = cosine_similarity(
+                query_embedding,
+                chunk_embedding
+            )[0][0]
+
+            results.append(
+                (
+                    bookmark,
+                    float(similarity),
+                    chunk
+                )
+            )
+
+    # Highest similarity first
+    results.sort(
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    return results[:top_k]

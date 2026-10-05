@@ -3,10 +3,9 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
+from sklearn.metrics.pairwise import cosine_similarity
 from embedding_service import generate_embedding
 from chunking_service import chunk_text
-
-from embedding_service import generate_embedding
 from semantic_search import semantic_search
 
 app = FastAPI()
@@ -128,11 +127,16 @@ def search_bookmarks(query: str = Query(..., min_length = 1)):
 
 @app.get("/bookmarks/semantic-search")
 def semantic_search_bookmarks(query: str = Query(..., min_length = 1), top_k: int = 5):
-    bookmarks = list(bookmarks_collection.find({
-        "embedding": {
-            "$exists": True
-        }
-    }))
+    
+    bookmarks = list(
+        bookmarks_collection.find({
+            "chunks": {
+                "$exists": True,
+                "$ne": []
+            }
+        })
+    )
+
     if not bookmarks:
         return {
             "query": query,
@@ -143,18 +147,19 @@ def semantic_search_bookmarks(query: str = Query(..., min_length = 1), top_k: in
 
     response = []
 
-    for bookmark, score in results:
-        bookmark["_id"] = str(bookmark["_id"])
+    for bookmark, score, chunk in results:
+
         response.append({
-            "id": bookmark["_id"],
-            "title": bookmark["title"],
-            "url": bookmark["url"],
-            "content": bookmark["content"],
+            "id": str(bookmark["_id"]),
+            "title": str(bookmark["title"]),
+            "url": str(bookmark["url"]),
+            "chunk_index": int(chunk["index"]),
+            "content": str(chunk["text"]),
             "similarity_score": float(score)
         })
 
     return {
-        "query": query,
+        "query": str(query),
         "count": len(response),
         "bookmarks": response
     }
