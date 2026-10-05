@@ -218,17 +218,22 @@ function semanticSearchBookmarks() {
 
 function displaySemanticBookmark(bookmark, container) {
     const bookmarkElement = document.createElement("div");
+
     const title = document.createElement("h3");
     title.textContent = bookmark.title;
     
     const url = document.createElement("p");
     url.textContent = bookmark.url;
 
+    const chunk = document.createElement("p");
+    chunk.textContent = bookmark.content;
+
     const score = document.createElement("p");
     score.textContent = "Similarity Score: " + bookmark.similarity_score.toFixed(4);
 
     bookmarkElement.appendChild(title);
     bookmarkElement.appendChild(url);
+    bookmarkElement.appendChild(chunk);
     bookmarkElement.appendChild(score);
 
     container.appendChild(bookmarkElement);
