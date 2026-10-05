@@ -131,8 +131,7 @@ def semantic_search_bookmarks(query: str = Query(..., min_length = 1), top_k: in
     bookmarks = list(
         bookmarks_collection.find({
             "chunks": {
-                "$exists": True,
-                "$ne": []
+                "$exists": True
             }
         })
     )
@@ -145,18 +144,21 @@ def semantic_search_bookmarks(query: str = Query(..., min_length = 1), top_k: in
         }
     results = semantic_search(query, bookmarks, top_k)
 
-    response = []
+    unique_bookmarks = {}
 
     for bookmark, score, chunk in results:
+        bookmark_id = str(bookmark["_id"])
+        if(bookmark_id not in unique_bookmarks or score > unique_bookmarks[bookmark_id]["similarity_score"]):
+            unique_bookmarks[bookmark_id] = {
+                "id": bookmark_id,
+                "title": bookmark["title"],
+                "url": bookmark["url"],
+                "chunk_index": chunk["index"],
+                "content": chunk["text"],
+                "similarity_score": float(score)
+            }
 
-        response.append({
-            "id": str(bookmark["_id"]),
-            "title": str(bookmark["title"]),
-            "url": str(bookmark["url"]),
-            "chunk_index": int(chunk["index"]),
-            "content": str(chunk["text"]),
-            "similarity_score": float(score)
-        })
+    response = list(unique_bookmarks.values())
 
     return {
         "query": str(query),
