@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
+from embedding_service import generate_embedding
+from chunking_service import chunk_text
 
 from embedding_service import generate_embedding
 from semantic_search import semantic_search
@@ -29,29 +31,37 @@ def root():
 
 @app.post("/bookmarks")
 def create_bookmark(bookmark: Bookmark):
-    bookmark_data = bookmark.model_dump()
+    full_text = bookmark.title + ". " + bookmark.content
+    embedding = generate_embedding(full_text)
 
-    text = (
-        bookmark_data["title"] + "\n" + bookmark_data["content"]
-    )
-    embedding = generate_embedding(text)
-    bookmark_data["embedding"] = embedding
+    chunks = chunk_text(full_text, chunk_size = 3, overlap = 1)
 
-    try:
-        result = bookmarks_collection.insert_one(bookmark_data)
-    except DuplicateKeyError:
-        raise HTTPException(
-            status_code=409,
-            detail="Bookmark with this URL already exists"
-        )
+    # Generate embedding for every chunk
+    chunk_documents = []
+
+    for index, chunk in enumerate(chunks):
+        chunk_embedding = generate_embedding(chunk)
+        chunk_documents.append({
+            "index": index,
+            "text": chunk,
+            "embedding": chunk_embedding
+        })
+
+    # Prepare MongoDB document
+    bookmark_data = {
+        "title": bookmark.title,
+        "url": bookmark.url,
+        "content": bookmark.content,
+        "embedding": embedding,
+
+        # Add chunk level embeddings
+        "chunks": chunk_documents
+    }
+    result = bookmarks_collection.insert_one(bookmark_data)
     return {
         "message": "Bookmark created successfully",
-        "id": str(result.inserted_id),
-        "bookmark": {
-            "title": bookmark_data["title"],
-            "url": bookmark_data["url"],
-            "content": bookmark_data["content"]
-        }
+        "_id": str(result.inserted_id),
+        "chunks_created": len(chunk_documents)
     }
 
 @app.delete("/bookmark/{bookmark_id}")
