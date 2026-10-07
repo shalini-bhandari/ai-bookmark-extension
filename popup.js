@@ -282,8 +282,20 @@ function askAI() {
                 response.sources.forEach((source) => {
 
                     const sourceElement = document.createElement("div");
-                    const title = document.createElement("strong");
-                    title.textcontent = source.title;
+                    const title = document.createElement("button");
+                    title.textContent = "Open: " + source.title;
+
+                    title.style.display = "block";
+                    title.style.marginBottom = "8px";
+                    title.style.cursor = "pointer";
+                    title.style.width = "100%";
+                    title.style.boxSizing = "border-box";
+
+                    title.addEventListener("click", () => {
+                        chrome.tabs.create({
+                            url: source.url
+                        });
+                    });
                     const metadata = document.createElement("p");
                     metadata.textContent =
                         `Chunk ${source.chunk_index} | ` +
