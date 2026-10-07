@@ -67,7 +67,7 @@ def create_bookmark(bookmark: Bookmark):
         "chunks_created": len(chunk_documents)
     }
 
-@app.post("/bookmark/ask")
+@app.post("/bookmarks/ask")
 def ask_bookmarks(request: AskRequest):
     bookmarks = list (
         bookmarks_collection.find({

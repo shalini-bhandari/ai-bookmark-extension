@@ -137,9 +137,14 @@ const searchButton = document.getElementById("searchButton");
 const searchInput = document.getElementById("searchInput");
 const searchResults = document.getElementById("searchResults");
 const semanticSearchButton = document.getElementById("semanticSearchButton");
+const askInput = document.getElementById("askInput")
+const askButton = document.getElementById("askButton");
+const askAnswer = document.getElementById("askAnswer");
+const askSources = document.getElementById("askSources");
 
 searchButton.addEventListener("click", searchBookmarks);
 semanticSearchButton.addEventListener("click", semanticSearchBookmarks);
+askButton.addEventListener("click", askAI);
 
 // Search function
 function searchBookmarks() {
@@ -237,4 +242,51 @@ function displaySemanticBookmark(bookmark, container) {
     bookmarkElement.appendChild(score);
 
     container.appendChild(bookmarkElement);
+}
+
+function askAI() {
+    const question = askInput.value.trim();
+
+    if(!question) {
+        askAnswer.textContent = "Please enter a question";
+        return
+    }
+
+    askAnswer.textContent = "Thinking...";
+    askSources.innerHTML = "";
+
+    chrome.runtime.sendMessage(
+        {
+            action: "askAI",
+            question: question
+        },
+        (response) => {
+
+            console.log("AI answer:", response);
+
+            if (!response || response.error) {
+                askAnswer.textContent =
+                    "Error while getting AI answer.";
+                return;
+            }
+
+            askAnswer.textContent = response.answer;
+
+            if (Array.isArray(response.sources)) {
+                const heading = document.createElement("h3");
+                heading.textContent = "Sources";
+                askSources.appendChild(heading);
+
+                response.sources.forEach((source) => {
+
+                    const sourceElement = document.createElement("div");
+                    sourceElement.textContent =
+                        `${source.title} — chunk ${source.chunk_index} ` +
+                        `(score: ${source.similarity_score.toFixed(4)})`;
+
+                    askSources.appendChild(sourceElement);
+                });
+            }
+        }
+    );
 }

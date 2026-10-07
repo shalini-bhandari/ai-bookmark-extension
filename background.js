@@ -141,4 +141,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         return true;
     }
+
+    if (message.action === "askAI"){
+        const url = "http://127.0.0.1:8000/bookmarks/ask";
+
+    console.log("Sending question to RAG API:", message.question);
+
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            question: message.question
+        })
+    })
+        .then((response) => {
+            console.log(
+                "RAG API HTTP status:",
+                response.status
+            );
+
+            return response.json();
+        })
+        .then((data) => {
+
+            console.log(
+                "RAG API response:",
+                data
+            );
+
+            sendResponse(data);
+        })
+        .catch((error) => {
+
+            console.error(
+                "Error calling RAG API:",
+                error
+            );
+
+            sendResponse({
+                error: "Could not get AI answer"
+            });
+        });
+
+    return true;
+    }
 });
