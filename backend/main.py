@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from embedding_service import generate_embedding
 from chunking_service import chunk_text
 from semantic_search import semantic_search
+from rag_service import answer_question
 
 app = FastAPI()
 
@@ -21,6 +22,9 @@ class Bookmark(BaseModel):
     title: str
     url: str
     content: str
+
+class AskRequest(BaseModel):
+    question: str
 
 @app.get("/")
 def root():
@@ -61,6 +65,29 @@ def create_bookmark(bookmark: Bookmark):
         "message": "Bookmark created successfully",
         "_id": str(result.inserted_id),
         "chunks_created": len(chunk_documents)
+    }
+
+@app.post("/bookmark/ask")
+def ask_bookmarks(request: AskRequest):
+    bookmarks = list (
+        bookmarks_collection.find({
+            "chunks": {
+                "$exists": True,
+                "$ne": []
+            }
+        })
+    )
+    if not bookmarks:
+        return {
+            "question": request.question,
+            "answer": "You don't have any bookmarks available for answering questions.",
+            "sources": []
+        }
+    result = answer_question(request.question, bookmarks, top_k = 3)
+    return {
+        "question": request.question,
+        "answer": result["answer"],
+        "sources": result["sources"]
     }
 
 @app.delete("/bookmark/{bookmark_id}")
