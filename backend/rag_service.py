@@ -1,12 +1,14 @@
 from semantic_search import semantic_search
 from llm_service import generate_answer
 
-def retrieve_context(query, bookmarks, top_k = 3):
+def retrieve_context(query, bookmarks, top_k = 3, min_similarity = 0.30):
     results = semantic_search(query, bookmarks, top_k)
     context_parts = []
     sources = []
 
     for bookmark, score, chunk in results:
+        if score < min_similarity:
+            continue
         context_parts.append(
             f"Source: {bookmark['title']}\n"
             f"Content: {chunk['text']}"
