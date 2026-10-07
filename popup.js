@@ -249,6 +249,7 @@ function askAI() {
 
     if(!question) {
         askAnswer.textContent = "Please enter a question";
+        askSources.innerHTML = "";
         return
     }
 
@@ -271,8 +272,9 @@ function askAI() {
             }
 
             askAnswer.textContent = response.answer;
+            askSources.innerHTML = "";
 
-            if (Array.isArray(response.sources)) {
+            if (Array.isArray(response.sources) && response.sources.length > 0) {
                 const heading = document.createElement("h3");
                 heading.textContent = "Sources";
                 askSources.appendChild(heading);
@@ -280,9 +282,19 @@ function askAI() {
                 response.sources.forEach((source) => {
 
                     const sourceElement = document.createElement("div");
-                    sourceElement.textContent =
-                        `${source.title} — chunk ${source.chunk_index} ` +
-                        `(score: ${source.similarity_score.toFixed(4)})`;
+                    const title = document.createElement("strong");
+                    title.textcontent = source.title;
+                    const metadata = document.createElement("p");
+                    metadata.textContent =
+                        `Chunk ${source.chunk_index} | ` +
+                        `Similarity: ${source.similarity_score.toFixed(4)}`;
+
+                    const content = document.createElement("p");
+                    content.textContent = `"${source.chunk_content}"`;
+                    
+                    sourceElement.appendChild(title);
+                    sourceElement.appendChild(metadata);
+                    sourceElement.appendChild(content);
 
                     askSources.appendChild(sourceElement);
                 });

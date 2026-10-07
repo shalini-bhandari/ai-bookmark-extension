@@ -18,6 +18,7 @@ def retrieve_context(query, bookmarks, top_k = 3, min_similarity = 0.30):
             "title": bookmark["title"],
             "url": bookmark["url"],
             "chunk_index": chunk["index"],
+            "chunk_content": chunk["text"],
             "similarity_score": float(score)
         })
 
