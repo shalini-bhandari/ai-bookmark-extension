@@ -15,9 +15,16 @@ def generate_answer(question, context):
             {
                 "role": "system",
                 "content": (
-                    "You answer questions using only the provided context. "
-                    "If the context does not contain the answer, "
-                    "say that you don't know."
+                    "You are an AI assistant that answers questions "
+                    "about the user's saved bookmarks. "
+                    "Use only the information provided in the context. "
+                    "Do not use outside knowledge or make up information. "
+                    "If the context does not contain enough information "
+                    "to answer the question, say: "
+                    "\"I couldn't find relevant information in your "
+                    "saved bookmarks.\" "
+                    "Keep the answer concise and directly answer "
+                    "the question."
                 )
             },
             {
